@@ -1,0 +1,1175 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Indoor Object Detection: 4-Model Comparative Analysis</title>
+  <style>
+    :root {
+      --bg-primary: #0f172a;
+      --bg-secondary: #1e293b;
+      --bg-tertiary: #334155;
+      --accent-primary: #3b82f6;
+      --accent-hover: #2563eb;
+      --accent-teal: #14b8a6;
+      --accent-purple: #8b5cf6;
+      --accent-amber: #f59e0b;
+      --accent-rose: #f43f5e;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --border-color: #334155;
+      --card-bg: rgba(30, 41, 59, 0.7);
+      --card-border: rgba(255, 255, 255, 0.08);
+      --shadow-sm: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
+      --shadow-lg: 0 10px 25px -5px rgba(0, 0, 0, 0.4);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background-color: var(--bg-primary);
+      color: var(--text-main);
+      min-height: 100vh;
+      line-height: 1.6;
+      padding: 2rem 1.5rem;
+    }
+
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+
+    /* Header */
+    header {
+      text-align: center;
+      margin-bottom: 2.5rem;
+      position: relative;
+    }
+
+    h1 {
+      font-size: 2.4rem;
+      font-weight: 800;
+      letter-spacing: -0.025em;
+      background: linear-gradient(135deg, #ffffff 30%, #94a3b8 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 0.6rem;
+    }
+
+    .subtitle {
+      color: var(--text-muted);
+      font-size: 1.1rem;
+      max-width: 800px;
+      margin: 0 auto 1.2rem;
+    }
+
+    .models-bar {
+      display: flex;
+      justify-content: center;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+    }
+
+    .model-tag {
+      font-size: 0.8rem;
+      font-weight: 600;
+      padding: 0.25rem 0.75rem;
+      border-radius: 6px;
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      color: var(--text-muted);
+    }
+
+    /* Cards */
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      backdrop-filter: blur(12px);
+      border-radius: 16px;
+      padding: 1.75rem;
+      margin-bottom: 2rem;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .card-title {
+      font-size: 1.3rem;
+      font-weight: 700;
+      margin-bottom: 1.25rem;
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      color: #fff;
+    }
+
+    /* Upload & Control Panel */
+    .upload-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.5rem;
+    }
+
+    @media (max-width: 900px) {
+      .upload-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .dropzone {
+      border: 2px dashed var(--border-color);
+      border-radius: 12px;
+      padding: 2.5rem 1.5rem;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      background: rgba(15, 23, 42, 0.4);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 220px;
+    }
+
+    .dropzone:hover,
+    .dropzone.dragover {
+      border-color: var(--accent-primary);
+      background: rgba(59, 130, 246, 0.05);
+    }
+
+    .dropzone svg {
+      width: 48px;
+      height: 48px;
+      fill: none;
+      stroke: var(--text-muted);
+      stroke-width: 1.5;
+      margin-bottom: 0.75rem;
+    }
+
+    .dropzone-text {
+      font-weight: 600;
+      margin-bottom: 0.25rem;
+    }
+
+    .dropzone-hint {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+    }
+
+    .preview-box {
+      border-radius: 12px;
+      background: rgba(15, 23, 42, 0.4);
+      border: 1px solid var(--border-color);
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 220px;
+      position: relative;
+    }
+
+    .preview-box img {
+      max-width: 100%;
+      max-height: 220px;
+      object-fit: contain;
+      display: none;
+    }
+
+    .preview-placeholder {
+      color: var(--text-muted);
+      font-size: 0.9rem;
+      text-align: center;
+      padding: 1rem;
+    }
+
+    .form-group {
+      margin-top: 1.25rem;
+    }
+
+    label {
+      display: block;
+      font-size: 0.9rem;
+      font-weight: 600;
+      margin-bottom: 0.4rem;
+      color: var(--text-muted);
+    }
+
+    input[type="text"] {
+      width: 100%;
+      padding: 0.75rem 1rem;
+      border-radius: 8px;
+      background: var(--bg-primary);
+      border: 1px solid var(--border-color);
+      color: var(--text-main);
+      font-size: 0.95rem;
+      outline: none;
+      transition: border 0.2s ease;
+    }
+
+    input[type="text"]:focus {
+      border-color: var(--accent-primary);
+    }
+
+    .btn-row {
+      display: flex;
+      gap: 1rem;
+      margin-top: 1.5rem;
+      flex-wrap: wrap;
+    }
+
+    .btn {
+      padding: 0.8rem 1.6rem;
+      border-radius: 8px;
+      font-weight: 700;
+      font-size: 0.95rem;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.6rem;
+      border: none;
+      transition: all 0.2s ease;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+      color: #fff;
+      box-shadow: 0 4px 14px rgba(37, 99, 235, 0.4);
+    }
+
+    .btn-primary:hover:not(:disabled) {
+      background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+      transform: translateY(-1px);
+    }
+
+    .btn-secondary {
+      background: var(--bg-tertiary);
+      color: var(--text-main);
+    }
+
+    .btn-secondary:hover:not(:disabled) {
+      background: #475569;
+    }
+
+    .btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    /* Progress & Loader */
+    .loader-card {
+      display: none;
+      text-align: center;
+      padding: 2rem;
+    }
+
+    .spinner {
+      width: 48px;
+      height: 48px;
+      border: 4px solid rgba(59, 130, 246, 0.2);
+      border-top-color: var(--accent-primary);
+      border-radius: 50%;
+      animation: spin 1s infinite linear;
+      margin: 0 auto 1.25rem;
+    }
+
+    @keyframes spin {
+      0% {
+        transform: rotate(0deg);
+      }
+
+      100% {
+        transform: rotate(360deg);
+      }
+    }
+
+    .status-text {
+      font-weight: 600;
+      font-size: 1.1rem;
+      color: #fff;
+      margin-bottom: 0.5rem;
+    }
+
+    .status-sub {
+      color: var(--text-muted);
+      font-size: 0.9rem;
+    }
+
+    /* Results Dashboard */
+    #resultsSection {
+      display: none;
+    }
+
+    /* KPI Highlights */
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 1.25rem;
+      margin-bottom: 2rem;
+    }
+
+    .kpi-card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 12px;
+      padding: 1.25rem;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .kpi-card::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 0;
+      height: 100%;
+      width: 4px;
+      background: var(--accent-primary);
+    }
+
+    .kpi-card.teal::before {
+      background: var(--accent-teal);
+    }
+
+    .kpi-card.purple::before {
+      background: var(--accent-purple);
+    }
+
+    .kpi-card.amber::before {
+      background: var(--accent-amber);
+    }
+
+    .kpi-label {
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 0.35rem;
+    }
+
+    .kpi-value {
+      font-size: 1.8rem;
+      font-weight: 800;
+      color: #fff;
+    }
+
+    .kpi-sub {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      margin-top: 0.2rem;
+    }
+
+    /* 2x2 Model Grid */
+    .models-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 1.5rem;
+      margin-bottom: 2rem;
+    }
+
+    @media (max-width: 900px) {
+      .models-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .model-card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 14px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .model-header {
+      padding: 1rem 1.25rem;
+      background: rgba(15, 23, 42, 0.6);
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .model-title {
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: #fff;
+    }
+
+    .badges {
+      display: flex;
+      gap: 0.5rem;
+    }
+
+    .badge {
+      font-size: 0.75rem;
+      font-weight: 700;
+      padding: 0.2rem 0.55rem;
+      border-radius: 6px;
+      text-transform: uppercase;
+    }
+
+    .badge-latency {
+      background: rgba(20, 184, 166, 0.2);
+      color: #2dd4bf;
+      border: 1px solid rgba(20, 184, 166, 0.4);
+    }
+
+    .badge-count {
+      background: rgba(139, 92, 246, 0.2);
+      color: #a78bfa;
+      border: 1px solid rgba(139, 92, 246, 0.4);
+    }
+
+    .model-image-container {
+      position: relative;
+      background: #000;
+      min-height: 280px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+    }
+
+    .model-image-container img {
+      width: 100%;
+      height: 320px;
+      object-fit: contain;
+      display: block;
+    }
+
+    .model-footer {
+      padding: 1rem 1.25rem;
+      background: rgba(15, 23, 42, 0.3);
+      border-top: 1px solid var(--border-color);
+      flex-grow: 1;
+    }
+
+    .detection-pills {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.4rem;
+      max-height: 90px;
+      overflow-y: auto;
+    }
+
+    .det-pill {
+      font-size: 0.78rem;
+      padding: 0.25rem 0.6rem;
+      border-radius: 6px;
+      background: var(--bg-tertiary);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+
+    .det-pill span.conf {
+      font-weight: 700;
+      color: #60a5fa;
+    }
+
+    /* Tabs for Visual Comparisons */
+    .tabs-header {
+      display: flex;
+      gap: 0.5rem;
+      border-bottom: 1px solid var(--border-color);
+      margin-bottom: 1.5rem;
+      overflow-x: auto;
+    }
+
+    .tab-btn {
+      padding: 0.75rem 1.25rem;
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      font-weight: 600;
+      font-size: 0.95rem;
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      transition: all 0.2s ease;
+      white-space: nowrap;
+    }
+
+    .tab-btn:hover {
+      color: #fff;
+    }
+
+    .tab-btn.active {
+      color: var(--accent-primary);
+      border-bottom-color: var(--accent-primary);
+    }
+
+    .tab-content {
+      display: none;
+    }
+
+    .tab-content.active {
+      display: block;
+    }
+
+    .chart-box {
+      border-radius: 12px;
+      background: rgba(15, 23, 42, 0.5);
+      border: 1px solid var(--border-color);
+      padding: 1rem;
+      text-align: center;
+      cursor: pointer;
+    }
+
+    .chart-box img {
+      max-width: 100%;
+      height: auto;
+      border-radius: 8px;
+      display: block;
+      margin: 0 auto;
+    }
+
+    /* Comparison Table */
+    .table-container {
+      overflow-x: auto;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.95rem;
+      text-align: left;
+    }
+
+    th {
+      background: rgba(15, 23, 42, 0.8);
+      padding: 0.85rem 1rem;
+      color: var(--text-muted);
+      font-weight: 700;
+      border-bottom: 2px solid var(--border-color);
+      text-transform: uppercase;
+      font-size: 0.8rem;
+      letter-spacing: 0.05em;
+    }
+
+    td {
+      padding: 0.85rem 1rem;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    tr:hover td {
+      background: rgba(59, 130, 246, 0.05);
+    }
+
+    .highlight-cell {
+      font-weight: 700;
+      color: #34d399;
+    }
+
+    /* Overlap & Consensus Grid */
+    .overlap-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 1.25rem;
+    }
+
+    .overlap-card {
+      background: rgba(15, 23, 42, 0.5);
+      border: 1px solid var(--border-color);
+      border-radius: 10px;
+      padding: 1.25rem;
+    }
+
+    .overlap-title {
+      font-size: 1rem;
+      font-weight: 700;
+      margin-bottom: 0.75rem;
+      color: #93c5fd;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .tag-cloud {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.4rem;
+    }
+
+    .tag {
+      font-size: 0.8rem;
+      padding: 0.2rem 0.6rem;
+      border-radius: 4px;
+      background: var(--bg-tertiary);
+      color: var(--text-main);
+    }
+
+    .tag-consensus {
+      background: rgba(16, 185, 129, 0.2);
+      color: #34d399;
+      border: 1px solid rgba(16, 185, 129, 0.4);
+      font-weight: 700;
+    }
+
+    /* Observations */
+    .observations-box {
+      background: rgba(15, 23, 42, 0.7);
+      border-left: 4px solid var(--accent-primary);
+      padding: 1.5rem;
+      border-radius: 0 10px 10px 0;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 0.88rem;
+      white-space: pre-wrap;
+      line-height: 1.7;
+      color: #cbd5e1;
+      max-height: 450px;
+      overflow-y: auto;
+    }
+
+    /* Lightbox Modal */
+    .modal {
+      display: none;
+      position: fixed;
+      z-index: 1000;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.9);
+      align-items: center;
+      justify-content: center;
+      padding: 2rem;
+    }
+
+    .modal img {
+      max-width: 90%;
+      max-height: 90vh;
+      border-radius: 8px;
+      box-shadow: 0 0 30px rgba(0, 0, 0, 0.8);
+    }
+
+    .modal-close {
+      position: absolute;
+      top: 1.5rem;
+      right: 2rem;
+      color: #fff;
+      font-size: 2rem;
+      font-weight: bold;
+      cursor: pointer;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <!-- Header -->
+    <header>
+      <h1>Indoor Object Detection Comparative Analysis</h1>
+      <p class="subtitle">
+        Empirical evaluation of Four Deep Learning Architectures on Indoor Scenes: Faster R-CNN, YOLO11, RT-DETR, and
+        Grounding DINO.
+      </p>
+      <div class="models-bar">
+        <span class="model-tag">Faster R-CNN (Two-stage CNN)</span>
+        <span class="model-tag">YOLO11 (One-stage CNN)</span>
+        <span class="model-tag">RT-DETR (Real-time Transformer)</span>
+        <span class="model-tag">Grounding DINO (Open-Vocabulary Zero-Shot)</span>
+      </div>
+    </header>
+
+    <!-- Upload & Interactive Control Panel -->
+    <div class="card">
+      <div class="card-title">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+          <polyline points="17 8 12 3 7 8" />
+          <line x1="12" y1="3" x2="12" y2="15" />
+        </svg>
+        Select Input Image
+      </div>
+
+      <div class="upload-grid">
+        <!-- Dropzone -->
+        <div class="dropzone" id="dropzone">
+          <svg viewBox="0 0 24 24">
+            <path
+              d="M4 16l4.586-4.586a2 2 0 0 1 2.828 0L16 16m-2-2l1.586-1.586a2 2 0 0 1 2.828 0L20 14m-6-6h.01M6 20h12a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2z" />
+          </svg>
+          <div class="dropzone-text">Click to choose image or drag & drop here</div>
+          <div class="dropzone-hint">Supports JPG, JPEG, PNG (Indoor Scenes Recommended)</div>
+          <input type="file" id="fileInput" accept=".jpg,.jpeg,.png" style="display: none;">
+        </div>
+
+        <!-- Preview Box -->
+        <div class="preview-box">
+          <div class="preview-placeholder" id="previewPlaceholder">No image selected yet.</div>
+          <img id="imagePreview" alt="Selected Image Preview">
+        </div>
+      </div>
+
+      <!-- Buttons -->
+      <div class="btn-row">
+        <button class="btn btn-primary" id="runBtn" disabled>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polygon points="5 3 19 12 5 21 5 3" />
+          </svg>
+          Run Comparative Analysis
+        </button>
+      </div>
+    </div>
+
+    <!-- Active Loading Card -->
+    <div class="card loader-card" id="loaderCard">
+      <div class="spinner"></div>
+      <div class="status-text" id="statusMessage">Initializing models...</div>
+      <div class="status-sub">Executing Faster R-CNN, YOLO11, RT-DETR & Grounding DINO on the input image</div>
+    </div>
+
+    <!-- Results Section -->
+    <div id="resultsSection">
+      <!-- KPI Highlights -->
+      <div class="kpi-grid">
+        <div class="kpi-card teal">
+          <div class="kpi-label">Fastest Model</div>
+          <div class="kpi-value" id="kpiFastest">-</div>
+          <div class="kpi-sub" id="kpiFastestSub">Latency: 0 ms</div>
+        </div>
+        <div class="kpi-card purple">
+          <div class="kpi-label">Max Object Yield</div>
+          <div class="kpi-value" id="kpiHighest">-</div>
+          <div class="kpi-sub" id="kpiHighestSub">0 detections found</div>
+        </div>
+        <div class="kpi-card amber">
+          <div class="kpi-label">Universal Consensus</div>
+          <div class="kpi-value" id="kpiConsensus" style="font-size: 1.3rem;">-</div>
+          <div class="kpi-sub">Detected by ALL 4 architectures</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Unique Classes Found</div>
+          <div class="kpi-value" id="kpiClasses">-</div>
+          <div class="kpi-sub">Distinct indoor categories</div>
+        </div>
+      </div>
+
+      <!-- 2x2 Model Annotated Results -->
+      <div class="card">
+        <div class="card-title">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="3" width="7" height="7" />
+            <rect x="14" y="3" width="7" height="7" />
+            <rect x="14" y="14" width="7" height="7" />
+            <rect x="3" y="14" width="7" height="7" />
+          </svg>
+          Four Model Annotated Detections (2×2 Layout)
+        </div>
+        <div class="models-grid" id="modelsGrid">
+          <!-- Populated dynamically via JS -->
+        </div>
+      </div>
+
+      <!-- Comparative Visualizations (Tabs) -->
+      <div class="card">
+        <div class="card-title">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="18" y1="20" x2="18" y2="10" />
+            <line x1="12" y1="20" x2="12" y2="4" />
+            <line x1="6" y1="20" x2="6" y2="14" />
+          </svg>
+          Comparative Graphs & Analytics
+        </div>
+
+        <div class="tabs-header">
+          <button class="tab-btn active" data-tab="tab-grid">Unified 2×2 Grid</button>
+          <button class="tab-btn" data-tab="tab-counts">Object Counts & Diversity</button>
+          <button class="tab-btn" data-tab="tab-latency">Inference Latency (ms)</button>
+          <button class="tab-btn" data-tab="tab-dashboard">Comprehensive Dashboard</button>
+        </div>
+
+        <div class="tab-content active" id="tab-grid">
+          <div class="chart-box" onclick="openModal(this)">
+            <img id="chartGridImg" alt="2x2 Annotated Model Grid">
+          </div>
+        </div>
+        <div class="tab-content" id="tab-counts">
+          <div class="chart-box" onclick="openModal(this)">
+            <img id="chartCountsImg" alt="Object Counts Comparison">
+          </div>
+        </div>
+        <div class="tab-content" id="tab-latency">
+          <div class="chart-box" onclick="openModal(this)">
+            <img id="chartLatencyImg" alt="Inference Times Comparison">
+          </div>
+        </div>
+        <div class="tab-content" id="tab-dashboard">
+          <div class="chart-box" onclick="openModal(this)">
+            <img id="chartDashboardImg" alt="Comparative Analysis Dashboard">
+          </div>
+        </div>
+      </div>
+
+      <!-- Comparison Table (Pandas) -->
+      <div class="card">
+        <div class="card-title">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M3 3h18v18H3z" />
+            <path d="M3 9h18" />
+            <path d="M3 15h18" />
+            <path d="M9 3v18" />
+            <path d="M15 3v18" />
+          </svg>
+          Model Comparison Table (Pandas)
+        </div>
+        <div class="table-container">
+          <table id="comparisonTable">
+            <thead>
+              <tr>
+                <th>Model</th>
+                <th>Device</th>
+                <th>Latency (ms)</th>
+                <th>Total Objects</th>
+                <th>Unique Classes</th>
+                <th>Avg Conf</th>
+                <th>Min Conf</th>
+                <th>Max Conf</th>
+                <th>Classes Detected</th>
+              </tr>
+            </thead>
+            <tbody id="comparisonTableBody">
+              <!-- Populated dynamically -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Cross-Model Overlap Analysis -->
+      <div class="card">
+        <div class="card-title">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="9" cy="12" r="6" />
+            <circle cx="15" cy="12" r="6" />
+          </svg>
+          Cross-Model Overlap & Consensus Breakdown
+        </div>
+        <div class="overlap-grid">
+          <div class="overlap-card">
+            <div class="overlap-title">Universal Consensus (All 4 Models)</div>
+            <div class="tag-cloud" id="consensusTags"></div>
+          </div>
+          <div class="overlap-card">
+            <div class="overlap-title">Unique Discoveries (1 Model Only)</div>
+            <div id="uniqueDetails" style="font-size: 0.9rem;"></div>
+          </div>
+          <div class="overlap-card">
+            <div class="overlap-title">Missed Detections (Identified by Peers)</div>
+            <div id="missedDetails" style="font-size: 0.9rem;"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Automated Observations Report -->
+      <div class="card">
+        <div class="card-title">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+            <polyline points="14 2 14 8 20 8" />
+            <line x1="16" y1="13" x2="8" y2="13" />
+            <line x1="16" y1="17" x2="8" y2="17" />
+            <polyline points="10 9 9 9 8 9" />
+          </svg>
+          Automated Scientific Observations & Evaluation
+        </div>
+        <div class="observations-box" id="observationsText">
+          Analyzing results...
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Lightbox Modal -->
+  <div class="modal" id="imageModal" onclick="closeModal()">
+    <span class="modal-close">&times;</span>
+    <img id="modalImg" alt="Enlarged View">
+  </div>
+
+  <script>
+    // State
+    let currentImageFile = null;
+    let currentImageBase64 = null;
+
+    // Elements
+    const dropzone = document.getElementById('dropzone');
+    const fileInput = document.getElementById('fileInput');
+    const imagePreview = document.getElementById('imagePreview');
+    const previewPlaceholder = document.getElementById('previewPlaceholder');
+    const runBtn = document.getElementById('runBtn');
+    const loaderCard = document.getElementById('loaderCard');
+    const statusMessage = document.getElementById('statusMessage');
+    const resultsSection = document.getElementById('resultsSection');
+
+    // File Drag & Drop Handlers
+    dropzone.addEventListener('click', () => fileInput.click());
+    dropzone.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      dropzone.classList.add('dragover');
+    });
+    dropzone.addEventListener('dragleave', () => dropzone.classList.remove('dragover'));
+    dropzone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      dropzone.classList.remove('dragover');
+      if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+        handleFileSelect(e.dataTransfer.files[0]);
+      }
+    });
+
+    fileInput.addEventListener('change', (e) => {
+      if (e.target.files && e.target.files[0]) {
+        handleFileSelect(e.target.files[0]);
+      }
+    });
+
+    function handleFileSelect(file) {
+      if (!file.type.match('image.*')) {
+        alert('Please select a valid JPG, JPEG, or PNG image.');
+        return;
+      }
+      currentImageFile = file;
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        currentImageBase64 = e.target.result;
+        imagePreview.src = currentImageBase64;
+        imagePreview.style.display = 'block';
+        previewPlaceholder.style.display = 'none';
+        runBtn.disabled = false;
+      };
+      reader.readAsDataURL(file);
+    }
+
+    // Run Analysis
+    runBtn.addEventListener('click', async () => {
+      if (!currentImageFile) return;
+
+      runBtn.disabled = true;
+      loaderCard.style.display = 'block';
+      resultsSection.style.display = 'none';
+
+      const formData = new FormData();
+      formData.append('file', currentImageFile);
+
+      // Simulation of progress text
+      const stages = [
+        "Running Faster R-CNN (Two-stage CNN)...",
+        "Running YOLO11 (One-stage Anchor-free CNN)...",
+        "Running RT-DETR (Real-time Detection Transformer)...",
+        "Running Grounding DINO (Open-Vocabulary Zero-shot)...",
+        "Synthesizing Comparative Analysis & Charts..."
+      ];
+      let sIdx = 0;
+      const interval = setInterval(() => {
+        if (sIdx < stages.length) {
+          statusMessage.innerText = stages[sIdx++];
+        }
+      }, 2500);
+
+      try {
+        const response = await fetch('/api/analyze', {
+          method: 'POST',
+          body: formData
+        });
+
+        clearInterval(interval);
+
+        if (!response.ok) {
+          const errText = await response.text();
+          throw new Error(errText || 'Inference failed');
+        }
+
+        const data = await response.json();
+        renderResults(data);
+      } catch (error) {
+        clearInterval(interval);
+        alert('Analysis Error: ' + error.message);
+      } finally {
+        loaderCard.style.display = 'none';
+        runBtn.disabled = false;
+      }
+    });
+
+    // Render Full Results
+    function renderResults(data) {
+      resultsSection.style.display = 'block';
+      resultsSection.scrollIntoView({ behavior: 'smooth' });
+
+      const metrics = data.metrics;
+      const models = data.models;
+      const modelNames = Object.keys(models);
+
+      // KPIs
+      let fastestModel = modelNames[0];
+      let maxObjModel = modelNames[0];
+      let minLat = 9999999;
+      let maxObjs = -1;
+
+      for (const m of modelNames) {
+        if (models[m].inference_time_ms < minLat) {
+          minLat = models[m].inference_time_ms;
+          fastestModel = m;
+        }
+        if (models[m].detections.length > maxObjs) {
+          maxObjs = models[m].detections.length;
+          maxObjModel = m;
+        }
+      }
+
+      document.getElementById('kpiFastest').innerText = fastestModel;
+      document.getElementById('kpiFastestSub').innerText = `${minLat.toFixed(1)} ms latency`;
+
+      document.getElementById('kpiHighest').innerText = maxObjModel;
+      document.getElementById('kpiHighestSub').innerText = `${maxObjs} objects detected`;
+
+      const consensus = data.overlap_info.consensus_classes || [];
+      document.getElementById('kpiConsensus').innerText = consensus.length > 0 ? consensus.join(', ') : 'None';
+
+      const allClasses = new Set();
+      for (const m of modelNames) {
+        (metrics[m].unique_classes || []).forEach(c => allClasses.add(c));
+      }
+      document.getElementById('kpiClasses').innerText = allClasses.size;
+
+      // Populate 2x2 Model Grid
+      const modelsGrid = document.getElementById('modelsGrid');
+      modelsGrid.innerHTML = '';
+
+      modelNames.forEach(m => {
+        const res = models[m];
+        const card = document.createElement('div');
+        card.className = 'model-card';
+
+        const pillsHtml = (res.detections || []).map(d => `
+          <div class="det-pill">
+            <span>${d.label}</span>
+            <span class="conf">${(d.confidence * 100).toFixed(0)}%</span>
+          </div>
+        `).join('') || '<span style="color:var(--text-muted); font-size:0.8rem;">No objects detected</span>';
+
+        card.innerHTML = `
+          <div class="model-header">
+            <div class="model-title">${m}</div>
+            <div class="badges">
+              <span class="badge badge-latency">${res.inference_time_ms.toFixed(1)} ms</span>
+              <span class="badge badge-count">${res.detections.length} objects</span>
+            </div>
+          </div>
+          <div class="model-image-container" onclick="openModalSrc('${res.annotated_image_base64}')">
+            <img src="${res.annotated_image_base64}" alt="${m} annotated image">
+          </div>
+          <div class="model-footer">
+            <div style="font-size:0.8rem; font-weight:700; color:var(--text-muted); margin-bottom:0.4rem;">
+              DETECTED OBJECTS (${res.detections.length}):
+            </div>
+            <div class="detection-pills">
+              ${pillsHtml}
+            </div>
+          </div>
+        `;
+        modelsGrid.appendChild(card);
+      });
+
+      // Charts
+      document.getElementById('chartGridImg').src = data.charts.grid_image_base64;
+      document.getElementById('chartCountsImg').src = data.charts.counts_chart_base64;
+      document.getElementById('chartLatencyImg').src = data.charts.latency_chart_base64;
+      document.getElementById('chartDashboardImg').src = data.charts.dashboard_base64;
+
+      // Table
+      const tbody = document.getElementById('comparisonTableBody');
+      tbody.innerHTML = '';
+      (data.table_records || []).forEach(row => {
+        const tr = document.createElement('tr');
+        const isFastest = row['Model'] === fastestModel;
+        tr.innerHTML = `
+          <td style="font-weight:700; color:#fff;">${row['Model']}</td>
+          <td>${row['Device']}</td>
+          <td class="${isFastest ? 'highlight-cell' : ''}">${row['Inference Time (ms)']}</td>
+          <td style="font-weight:700;">${row['Total Objects']}</td>
+          <td>${row['Unique Classes']}</td>
+          <td>${row['Avg Confidence']}</td>
+          <td>${row['Min Confidence']}</td>
+          <td>${row['Max Confidence']}</td>
+          <td style="font-size:0.85rem; color:var(--text-muted);">${row['Classes Detected']}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+
+      // Consensus & Overlap
+      const consensusDiv = document.getElementById('consensusTags');
+      if (consensus.length > 0) {
+        consensusDiv.innerHTML = consensus.map(c => `<span class="tag tag-consensus">${c}</span>`).join('');
+      } else {
+        consensusDiv.innerHTML = '<span style="color:var(--text-muted); font-size:0.85rem;">No universal consensus across all 4 models</span>';
+      }
+
+      // Unique details
+      const uniqueDetails = document.getElementById('uniqueDetails');
+      let uHtml = '';
+      for (const m of modelNames) {
+        const uList = data.overlap_info.unique_to_model[m] || [];
+        if (uList.length > 0) {
+          uHtml += `<div style="margin-bottom:0.4rem;"><b>${m}:</b> ${uList.join(', ')}</div>`;
+        }
+      }
+      uniqueDetails.innerHTML = uHtml || '<span style="color:var(--text-muted); font-size:0.85rem;">No unique classes exclusive to one model</span>';
+
+      // Missed details
+      const missedDetails = document.getElementById('missedDetails');
+      let mHtml = '';
+      for (const m of modelNames) {
+        const mList = data.overlap_info.missed_by_model[m] || [];
+        if (mList.length > 0) {
+          mHtml += `<div style="margin-bottom:0.4rem;"><b>${m}:</b> ${mList.join(', ')}</div>`;
+        }
+      }
+      missedDetails.innerHTML = mHtml || '<span style="color:var(--text-muted); font-size:0.85rem;">All models captured shared categories</span>';
+
+      // Observations
+      document.getElementById('observationsText').innerText = data.observations;
+    }
+
+    // Tabs logic
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+        btn.classList.add('active');
+        document.getElementById(btn.dataset.tab).classList.add('active');
+      });
+    });
+
+    // Lightbox Modal
+    const modal = document.getElementById('imageModal');
+    const modalImg = document.getElementById('modalImg');
+
+    function openModal(box) {
+      const img = box.querySelector('img');
+      if (img && img.src) {
+        modalImg.src = img.src;
+        modal.style.display = 'flex';
+      }
+    }
+
+    function openModalSrc(src) {
+      if (src) {
+        modalImg.src = src;
+        modal.style.display = 'flex';
+      }
+    }
+
+    function closeModal() {
+      modal.style.display = 'none';
+    }
+  </script>
+</body>
+
+</html>
